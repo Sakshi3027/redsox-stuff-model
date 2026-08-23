@@ -1,30 +1,125 @@
-# Stuff Model — Pitch Quality from Physics
+# Stuff Model — Grading MLB Pitch Quality from Physics
 
-A "stuff model" that grades how nasty an MLB pitch is based purely on its
-physical characteristics — velocity, movement, spin, and release — using
-real Statcast pitch-by-pitch data.
+A machine-learning system that grades how nasty an MLB pitch is from its
+**physical characteristics alone** — velocity, movement, spin, and release —
+trained on **2.14 million real Statcast pitches** (2022–2024).
 
-The model predicts the run value of a pitch from its physics alone,
-deliberately excluding location and count, so it measures the pitch's
-inherent quality rather than the pitcher's command or the game situation.
-This is how modern MLB front offices quantify "stuff."
+**Live dashboard:** https://redsox-stuff-model.vercel.app
+*(first load may take ~40s while the free-tier API wakes up)*
 
-## Approach
+*A scouting-report interface: the 2024 Stuff+ leaderboard, and any pitcher's arsenal broken down by pitch — grade, velocity, movement, spin, and separation off the fastball.*
 
-1. Ingest real Statcast data (via pybaseball), season by season, through a
-   bronze -> silver -> gold pipeline into a DuckDB warehouse.
-2. Build a run-expectancy foundation and assign each pitch a run value.
-3. Engineer pitcher-relative physics features (movement vs. the pitcher's
-   own fastball, velocity separation, spin efficiency, release consistency).
-4. Model run value from those features, validated on held-out future seasons.
-5. Explain each pitch's grade with SHAP, and serve it through a
-   front-office-style scouting dashboard.
+![Dashboard](docs/dashboard.png)
 
-## Stack
+---
 
-Python (pandas, pybaseball, scikit-learn, XGBoost, SHAP) · DuckDB ·
-R (statistical validation) · Next.js + FastAPI · deployed live
+## What it does
 
-## Status
+The model predicts the **run value** of a pitch from its physics, deliberately
+excluding location, count, and batter — so it measures a pitch's *inherent
+quality*, not the pitcher's command or the game situation. This is how modern
+MLB front offices quantify "stuff." Predictions are rescaled to a **Stuff+**
+grade where 100 = league average and higher is nastier.
 
-Early — building the ingestion pipeline.
+### Does it actually work?
+
+Three independent checks say yes:
+
+**1. It ranks pitches correctly on a season it never saw.** Trained on
+2022–2023 and tested on held-out 2024, binning pitches by predicted stuff
+produces a clean monotonic relationship with *actual* run value — the best-graded
+decile allowed ~4x less run value than the worst.
+
+**2. Stuff+ is a stable, repeatable skill.** Year-over-year reliability
+(2023 → 2024) is **r = 0.740** across 508 pitchers (p ≈ 1e-89) — proving stuff
+is a real pitcher trait, not season-to-season noise. This is the core reason
+front offices trust stuff metrics over volatile results-based stats.
+
+![Stuff+ reliability](analysis/output/stuff_reliability.png)
+
+**3. Its leaderboard matches expert consensus.** The top 2024 Stuff+ grades go
+to Emmanuel Clase, Clay Holmes, Ryan Helsley, Pete Fairbanks, and Justin
+Verlander — genuinely among the nastiest arms in baseball. The model identified
+them from physics alone, without being told who's good.
+
+### What drives a good pitch?
+
+SHAP analysis shows the single biggest driver of stuff is **how differently a
+pitch moves from the pitcher's own fastball** — an engineered, pitcher-relative
+feature — followed by velocity separation off the fastball. The model leaned
+hardest on baseball domain knowledge, not just raw numbers.
+
+![Pitch movement](analysis/output/pitch_movement.png)
+
+---
+
+## Architecture
+
+A full analytics platform, from raw data to a deployed front-office tool:
+
+| Layer | What | Tech |
+|-------|------|------|
+| **Ingestion** | Pull raw Statcast, season by season, incrementally | `pybaseball`, Parquet |
+| **Pipeline** | bronze → silver → gold; clean 2.14M pitches, handle handedness | pandas |
+| **Run value** | Learn a count-value table + linear weights; value every pitch | pandas |
+| **Features** | Pitcher-relative physics: movement/velo separation, tunneling | pandas |
+| **Model** | Predict run value from physics; temporal validation | XGBoost |
+| **Interpretability** | Stuff+ grade + SHAP drivers | SHAP |
+| **Validation** | Year-over-year reliability + publication charts | **R**, ggplot2 |
+| **Serving** | REST API over the graded data | FastAPI |
+| **Dashboard** | Scouting interface: leaderboard, arsenals, charts | Next.js, Recharts |
+
+Python for the pipeline and modeling, **R for statistical validation and
+visualization** — mirroring how a real baseball R&D group splits the two.
+
+---
+
+## Running it
+
+```bash
+# 1. environment
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+# 2. pipeline (pulls real Statcast — takes a few minutes per season)
+python pipeline/bronze.py 2022
+python pipeline/bronze.py 2023
+python pipeline/bronze.py 2024
+python pipeline/silver.py
+python pipeline/run_value.py
+python pipeline/gold.py
+python pipeline/features.py
+
+# 3. model + grades
+python model/train.py
+python model/interpret.py
+python model/build_serving_data.py
+
+# 4. R validation (optional)
+python model/export_for_r.py
+Rscript analysis/stuff_validation.R
+
+# 5. serve + dashboard
+python -m uvicorn dashboard.api:app --port 8000
+cd frontend && npm install && npm run dev
+```
+
+---
+
+## Notes and future work
+
+- **v1 run value** uses a count-based proxy (learned from ball-strike counts and
+  outcome linear weights). The relative pitch valuation is sound; a phase-2
+  upgrade would swap in full base-out (RE24) run expectancy for better absolute
+  calibration.
+- **Low per-pitch R²** is expected and correct: individual pitch outcomes are
+  noise-dominated, so no model predicts a single pitch well. Value lives in the
+  aggregate rank-ordering — which holds cleanly on held-out data. Published
+  models (Stuff+, PitchingBot) share this property.
+- **Planned extensions:** pitch-design recommendations ("+2\" of drop → +X run
+  value"), tunneling/deception analysis, an "undervalued arms" Moneyball layer,
+  and year-over-year pitcher tracking.
+
+---
+
+*Built with real, public MLB Statcast data via [pybaseball](https://github.com/jldbc/pybaseball).*
