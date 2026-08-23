@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+html, body {
+  background: #0a0e1a;
+  color: #e6e9ef;
+}
+
+input, select { color-scheme: dark; }
