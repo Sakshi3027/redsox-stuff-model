@@ -29,6 +29,16 @@ export interface PitcherDetail {
   arsenal: ArsenalPitch[];
 }
 
+export interface DesignSuggestion {
+  pitch_type: string;
+  pitch_name: string;
+  knob_label: string;
+  direction: string;
+  best_delta: number;
+  projected_gain: number;
+  base_stuff: number;
+}
+
 export async function listPitchers(year = 2024): Promise<PitcherRow[]> {
   const res = await fetch(`${API_BASE}/pitchers?year=${year}&limit=100`);
   if (!res.ok) throw new Error(`pitchers failed: ${res.status}`);
@@ -38,5 +48,11 @@ export async function listPitchers(year = 2024): Promise<PitcherRow[]> {
 export async function getPitcher(id: number, year = 2024): Promise<PitcherDetail> {
   const res = await fetch(`${API_BASE}/pitcher/${id}?year=${year}`);
   if (!res.ok) throw new Error(`pitcher failed: ${res.status}`);
+  return res.json();
+}
+
+export async function getDesign(id: number): Promise<{ suggestions: DesignSuggestion[] }> {
+  const res = await fetch(`${API_BASE}/design/${id}`);
+  if (!res.ok) throw new Error(`design failed: ${res.status}`);
   return res.json();
 }

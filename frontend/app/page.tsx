@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listPitchers, getPitcher, PitcherRow, PitcherDetail } from "@/lib/api";
+import { listPitchers, getPitcher, getDesign, PitcherRow, PitcherDetail, DesignSuggestion } from "@/lib/api";
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 const gradeColor = (s: number) =>
@@ -10,6 +10,7 @@ const gradeColor = (s: number) =>
 export default function Dashboard() {
   const [pitchers, setPitchers] = useState<PitcherRow[]>([]);
   const [selected, setSelected] = useState<PitcherDetail | null>(null);
+  const [design, setDesign] = useState<DesignSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function Dashboard() {
 
   function pick(id: number) {
     getPitcher(id, 2024).then(setSelected);
+    getDesign(id).then((d) => setDesign(d.suggestions)).catch(() => setDesign([]));
   }
 
   if (loading) return <p className="text-slate-500">Loading leaderboard…</p>;
@@ -107,7 +109,7 @@ export default function Dashboard() {
                   <XAxis type="number" dataKey="avg_velo" name="Velo" unit=" mph"
                     domain={["dataMin - 2", "dataMax + 2"]} tick={{ fill: "#64748b", fontSize: 11 }}
                     label={{ value: "Velocity (mph)", position: "bottom", fill: "#64748b", fontSize: 11 }} />
-                                    <YAxis type="number" dataKey="stuff_plus" name="Stuff+"
+                  <YAxis type="number" dataKey="stuff_plus" name="Stuff+"
                     domain={[90, 120]} tick={{ fill: "#64748b", fontSize: 11 }}
                     label={{ value: "Stuff+", angle: -90, position: "insideLeft", fill: "#64748b", fontSize: 11 }} />
                   <ZAxis type="number" dataKey="pitches" range={[60, 400]} />
@@ -125,6 +127,33 @@ export default function Dashboard() {
               Dashed line = league-average Stuff+ (100). Bubble size = pitch usage.
             </p>
           </div>
+
+          {/* Pitch Lab - design recommendations */}
+          {design.length > 0 && (
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Pitch Lab
+              </h3>
+              <p className="mb-3 text-[11px] text-slate-600">
+                The single physical change the model projects would most improve each pitch.
+              </p>
+              <div className="space-y-2">
+                {design.map((s) => (
+                  <div key={s.pitch_type} className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-2 text-sm">
+                    <span className="text-slate-300">
+                      <span className="font-medium text-slate-100">{s.pitch_name}</span>
+                      {": "}
+                      {s.direction} {s.knob_label}
+                      <span className="text-slate-500"> ({s.best_delta > 0 ? "+" : ""}{s.best_delta})</span>
+                    </span>
+                    <span className="font-semibold text-emerald-400">
+                      +{s.projected_gain.toFixed(1)} Stuff+
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
