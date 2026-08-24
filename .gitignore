@@ -27,4 +27,4 @@ model/artifacts/
 # But DO ship the small serving files the API needs
 !dashboard/data/arsenal.parquet
 !dashboard/data/pitchers.parquet
-!model/artifacts/shap_importance.parquet
+!model/artifacts/shap_importance.parquet!dashboard/data/pitch_design.parquet

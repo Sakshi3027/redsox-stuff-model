@@ -4,6 +4,7 @@ FastAPI backend for the stuff-model scouting dashboard.
 Serves the graded data:
   GET /api/pitchers?year=2024   - leaderboard of pitchers by Stuff+
   GET /api/pitcher/{id}?year=   - one pitcher's full arsenal
+  GET /api/design/{id}          - pitch-design suggestions for a pitcher
   GET /api/drivers              - SHAP global feature importance
   GET /api/health
 """
@@ -31,12 +32,22 @@ try:
     drivers = pd.read_parquet(ART / "shap_importance.parquet")
 except Exception:
     drivers = pd.DataFrame(columns=["feature", "mean_abs_shap"])
+try:
+    design = pd.read_parquet(DATA / "pitch_design.parquet")
+except Exception:
+    design = pd.DataFrame(columns=["pitcher", "pitch_type", "best_knob",
+                                   "best_delta", "projected_gain", "base_stuff"])
 
 # nice display names for pitch codes
 PITCH_NAMES = {
     "FF": "Four-Seam", "SI": "Sinker", "FC": "Cutter", "SL": "Slider",
     "ST": "Sweeper", "SV": "Slurve", "CU": "Curveball", "KC": "Knuckle-Curve",
     "CH": "Changeup", "FS": "Splitter",
+}
+
+KNOB_LABELS = {
+    "pfx_x_in": "horizontal break", "pfx_z_in": "vertical break",
+    "release_speed": "velocity", "velo_sep": "separation off fastball",
 }
 
 
@@ -73,6 +84,24 @@ def get_pitcher(pitcher_id: int, year: int = 2024):
         "arsenal": ars[[
             "pitch_type", "pitch_name", "stuff_plus", "pitches",
             "avg_velo", "avg_movement", "avg_spin", "velo_sep",
+        ]].to_dict(orient="records"),
+    }
+
+
+@app.get("/api/design/{pitcher_id}")
+def get_design(pitcher_id: int):
+    d = design[design["pitcher"] == pitcher_id].copy()
+    if d.empty:
+        return {"pitcher": pitcher_id, "suggestions": []}
+    d["knob_label"] = d["best_knob"].map(KNOB_LABELS).fillna(d["best_knob"])
+    d["direction"] = d["best_delta"].apply(lambda x: "more" if x > 0 else "less")
+    d["pitch_name"] = d["pitch_type"].map(PITCH_NAMES).fillna(d["pitch_type"])
+    d = d.sort_values("projected_gain", ascending=False)
+    return {
+        "pitcher": pitcher_id,
+        "suggestions": d[[
+            "pitch_type", "pitch_name", "knob_label", "direction",
+            "best_delta", "projected_gain", "base_stuff",
         ]].to_dict(orient="records"),
     }
 
