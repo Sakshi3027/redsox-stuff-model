@@ -42,7 +42,12 @@ try:
 except Exception:
     undervalued = pd.DataFrame(columns=["pitcher", "player_name",
                                         "overall_stuff", "gap"])
-    
+try:
+    risers = pd.read_parquet(DATA / "risers_fallers.parquet")
+except Exception:
+    risers = pd.DataFrame(columns=["pitcher", "player_name",
+                                   "overall_stuff_2023", "overall_stuff_2024", "delta"])
+        
 # nice display names for pitch codes
 PITCH_NAMES = {
     "FF": "Four-Seam", "SI": "Sinker", "FC": "Cutter", "SL": "Slider",
@@ -125,4 +130,14 @@ def get_undervalued(limit: int = 12):
     return {
         "undervalued": buy[cols].to_dict(orient="records"),
         "overvalued": sell[cols].to_dict(orient="records"),
+    }
+
+@app.get("/api/trends")
+def get_trends(limit: int = 12):
+    df = risers.sort_values("delta", ascending=False)
+    cols = ["pitcher", "player_name", "overall_stuff_2023",
+            "overall_stuff_2024", "delta"]
+    return {
+        "risers": df.head(limit)[cols].to_dict(orient="records"),
+        "fallers": df.tail(limit).iloc[::-1][cols].to_dict(orient="records"),
     }
