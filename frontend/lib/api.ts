@@ -71,3 +71,17 @@ export async function getUndervalued(): Promise<{ undervalued: ValueRow[]; overv
   if (!res.ok) throw new Error(`undervalued failed: ${res.status}`);
   return res.json();
 }
+
+export interface TrendRow {
+  pitcher: number;
+  player_name: string;
+  overall_stuff_2023: number;
+  overall_stuff_2024: number;
+  delta: number;
+}
+
+export async function getTrends(): Promise<{ risers: TrendRow[]; fallers: TrendRow[] }> {
+  const res = await fetch(`${API_BASE}/trends?limit=12`);
+  if (!res.ok) throw new Error(`trends failed: ${res.status}`);
+  return res.json();
+}

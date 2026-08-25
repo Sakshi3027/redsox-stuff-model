@@ -1,18 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listPitchers, getPitcher, getDesign, getUndervalued, PitcherRow, PitcherDetail, DesignSuggestion, ValueRow } from "@/lib/api";
+import { listPitchers, getPitcher, getDesign, getUndervalued, getTrends, PitcherRow, PitcherDetail, DesignSuggestion, ValueRow, TrendRow } from "@/lib/api";
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 const gradeColor = (s: number) =>
   s >= 108 ? "#10b981" : s >= 103 ? "#84cc16" : s >= 98 ? "#eab308" : "#f87171";
 
 export default function Dashboard() {
-  const [tab, setTab] = useState<"scouting" | "value">("scouting");
+  const [tab, setTab] = useState<"scouting" | "value" | "trends">("scouting");
   const [pitchers, setPitchers] = useState<PitcherRow[]>([]);
   const [selected, setSelected] = useState<PitcherDetail | null>(null);
   const [design, setDesign] = useState<DesignSuggestion[]>([]);
   const [value, setValue] = useState<{ undervalued: ValueRow[]; overvalued: ValueRow[] } | null>(null);
+  const [trends, setTrends] = useState<{ risers: TrendRow[]; fallers: TrendRow[] } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export default function Dashboard() {
       if (p.length) pick(p[0].pitcher);
     }).finally(() => setLoading(false));
     getUndervalued().then(setValue).catch(() => setValue(null));
+    getTrends().then(setTrends).catch(() => setTrends(null));
   }, []);
 
   function pick(id: number) {
@@ -34,7 +36,7 @@ export default function Dashboard() {
     <div>
       {/* Tabs */}
       <div className="mb-6 flex gap-1 border-b border-white/5">
-        {(["scouting", "value"] as const).map((t) => (
+        {(["scouting", "value", "trends"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -42,7 +44,7 @@ export default function Dashboard() {
               tab === t ? "border-b-2 border-[#BD3039] text-slate-100" : "text-slate-500 hover:text-slate-300"
             }`}
           >
-            {t === "scouting" ? "Scouting" : "Undervalued Arms"}
+            {t === "scouting" ? "Scouting" : t === "value" ? "Undervalued Arms" : "Risers & Fallers"}
           </button>
         ))}
       </div>
@@ -210,6 +212,50 @@ export default function Dashboard() {
                     <span className="flex items-center gap-3 text-xs">
                       <span className="text-slate-500">Stuff+ {r.overall_stuff.toFixed(1)}</span>
                       <span className="font-semibold text-red-400">{r.gap.toFixed(0)}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === "trends" && trends && (
+        <div>
+          <p className="mb-5 max-w-3xl text-sm text-slate-400">
+            Change in overall Stuff+ from 2023 to 2024. Risers flag development
+            wins and breakouts; fallers flag possible fatigue, aging, or injury
+            worth an early look.
+          </p>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-emerald-400">
+                Risers — stuff improved most
+              </h3>
+              <div className="space-y-1">
+                {trends.risers.map((r) => (
+                  <div key={r.pitcher} className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-2 text-sm">
+                    <span className="text-slate-200">{r.player_name}</span>
+                    <span className="flex items-center gap-3 text-xs">
+                      <span className="text-slate-500">{r.overall_stuff_2023.toFixed(1)} → {r.overall_stuff_2024.toFixed(1)}</span>
+                      <span className="font-semibold text-emerald-400">+{r.delta.toFixed(1)}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-red-400">
+                Fallers — stuff declined most
+              </h3>
+              <div className="space-y-1">
+                {trends.fallers.map((r) => (
+                  <div key={r.pitcher} className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-2 text-sm">
+                    <span className="text-slate-200">{r.player_name}</span>
+                    <span className="flex items-center gap-3 text-xs">
+                      <span className="text-slate-500">{r.overall_stuff_2023.toFixed(1)} → {r.overall_stuff_2024.toFixed(1)}</span>
+                      <span className="font-semibold text-red-400">{r.delta.toFixed(1)}</span>
                     </span>
                   </div>
                 ))}
