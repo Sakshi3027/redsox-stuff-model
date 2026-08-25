@@ -37,7 +37,12 @@ try:
 except Exception:
     design = pd.DataFrame(columns=["pitcher", "pitch_type", "best_knob",
                                    "best_delta", "projected_gain", "base_stuff"])
-
+try:
+    undervalued = pd.read_parquet(DATA / "undervalued.parquet")
+except Exception:
+    undervalued = pd.DataFrame(columns=["pitcher", "player_name",
+                                        "overall_stuff", "gap"])
+    
 # nice display names for pitch codes
 PITCH_NAMES = {
     "FF": "Four-Seam", "SI": "Sinker", "FC": "Cutter", "SL": "Slider",
@@ -109,3 +114,15 @@ def get_design(pitcher_id: int):
 @app.get("/api/drivers")
 def get_drivers():
     return drivers.head(12).to_dict(orient="records")
+
+@app.get("/api/undervalued")
+def get_undervalued(limit: int = 12):
+    df = undervalued.sort_values("gap", ascending=False)
+    buy = df.head(limit)
+    sell = df.tail(limit).iloc[::-1]
+    cols = ["pitcher", "player_name", "overall_stuff",
+            "stuff_pct", "results_pct", "gap"]
+    return {
+        "undervalued": buy[cols].to_dict(orient="records"),
+        "overvalued": sell[cols].to_dict(orient="records"),
+    }
