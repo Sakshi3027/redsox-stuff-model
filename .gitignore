@@ -28,3 +28,4 @@ model/artifacts/
 !dashboard/data/arsenal.parquet
 !dashboard/data/pitchers.parquet
 !model/artifacts/shap_importance.parquet!dashboard/data/pitch_design.parquet
+!dashboard/data/undervalued.parquet
