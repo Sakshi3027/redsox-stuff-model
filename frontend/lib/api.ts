@@ -56,3 +56,18 @@ export async function getDesign(id: number): Promise<{ suggestions: DesignSugges
   if (!res.ok) throw new Error(`design failed: ${res.status}`);
   return res.json();
 }
+
+export interface ValueRow {
+  pitcher: number;
+  player_name: string;
+  overall_stuff: number;
+  stuff_pct: number;
+  results_pct: number;
+  gap: number;
+}
+
+export async function getUndervalued(): Promise<{ undervalued: ValueRow[]; overvalued: ValueRow[] }> {
+  const res = await fetch(`${API_BASE}/undervalued?limit=12`);
+  if (!res.ok) throw new Error(`undervalued failed: ${res.status}`);
+  return res.json();
+}
