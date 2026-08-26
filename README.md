@@ -53,6 +53,20 @@ hardest on baseball domain knowledge, not just raw numbers.
 
 ---
 
+## Phase 2: from grading to decisions
+
+A grade tells you what a pitch *is*. A front office needs to know what to *do* about it. Four analytics layers turn the model into a decision tool:
+
+**Pitch Lab - prescriptive pitch design.** Inverts the model: sweeps each physical trait across a realistic range, re-scores every variant, and reports the single change that would most improve a pitch's grade. It flags that Clase's cutter projects a +6 Stuff+ gain with three fewer inches of vertical break. Descriptive becomes prescriptive.
+
+**Undervalued Arms - a Moneyball layer.** Because stuff is stable (r = 0.74) and results are noisy, a pitcher whose stuff far outranks his actual run prevention is a buy-low candidate whose results should regress toward the stuff. The board ranks those divergences in both directions as a screening tool for closer looks.
+
+**Risers & Fallers - year-over-year trends.** Tracks each pitcher's Stuff+ change from 2023 to 2024. Gains flag breakouts and development wins; drops flag possible fatigue, aging, or injury. It correctly surfaces Michael Kopech's breakout and the expected decliners.
+
+**Similar Arms - scouting comps.** Nearest-neighbor search over each pitcher's arsenal physics answers "who else throws like this?" Comps for Emmanuel Clase come back as Tyler Glasnow, Clay Holmes, and Pete Fairbanks - exactly the group of elite power arms a scout would name.
+
+---
+
 ## Architecture
 
 A full analytics platform, from raw data to a deployed front-office tool:
