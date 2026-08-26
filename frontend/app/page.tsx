@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listPitchers, getPitcher, getDesign, getUndervalued, getTrends, PitcherRow, PitcherDetail, DesignSuggestion, ValueRow, TrendRow } from "@/lib/api";
+import { listPitchers, getPitcher, getDesign, getUndervalued, getTrends, getSimilar, PitcherRow, PitcherDetail, DesignSuggestion, ValueRow, TrendRow, SimilarArm } from "@/lib/api";
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 
 const gradeColor = (s: number) =>
@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [pitchers, setPitchers] = useState<PitcherRow[]>([]);
   const [selected, setSelected] = useState<PitcherDetail | null>(null);
   const [design, setDesign] = useState<DesignSuggestion[]>([]);
+  const [similar, setSimilar] = useState<SimilarArm[]>([]);
   const [value, setValue] = useState<{ undervalued: ValueRow[]; overvalued: ValueRow[] } | null>(null);
   const [trends, setTrends] = useState<{ risers: TrendRow[]; fallers: TrendRow[] } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,7 @@ export default function Dashboard() {
   function pick(id: number) {
     getPitcher(id, 2024).then(setSelected);
     getDesign(id).then((d) => setDesign(d.suggestions)).catch(() => setDesign([]));
+    getSimilar(id).then((d) => setSimilar(d.comps)).catch(() => setSimilar([]));
   }
 
   if (loading) return <p className="text-slate-500">Loading…</p>;
@@ -166,6 +168,26 @@ export default function Dashboard() {
                           <span className="text-slate-500"> ({s.best_delta > 0 ? "+" : ""}{s.best_delta})</span>
                         </span>
                         <span className="font-semibold text-emerald-400">+{s.projected_gain.toFixed(1)} Stuff+</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Similar Arms */}
+              {similar.length > 0 && (
+                <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Similar Arms</h3>
+                  <p className="mb-3 text-[11px] text-slate-600">
+                    Pitchers with the most physically similar arsenal, by nearest-neighbor search over velocity, movement, spin, and stuff.
+                  </p>
+                  <div className="space-y-2">
+                    {similar.map((c) => (
+                      <div key={c.similar_pitcher} className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-2 text-sm">
+                        <span className="text-slate-200">{c.similar_name}</span>
+                        <span className="text-xs font-semibold text-slate-400">
+                          {(c.similarity * 100).toFixed(0)}% match
+                        </span>
                       </div>
                     ))}
                   </div>

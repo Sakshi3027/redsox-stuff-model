@@ -85,3 +85,15 @@ export async function getTrends(): Promise<{ risers: TrendRow[]; fallers: TrendR
   if (!res.ok) throw new Error(`trends failed: ${res.status}`);
   return res.json();
 }
+
+export interface SimilarArm {
+  similar_pitcher: number;
+  similar_name: string;
+  similarity: number;
+}
+
+export async function getSimilar(id: number): Promise<{ comps: SimilarArm[] }> {
+  const res = await fetch(`${API_BASE}/similar/${id}`);
+  if (!res.ok) throw new Error(`similar failed: ${res.status}`);
+  return res.json();
+}
