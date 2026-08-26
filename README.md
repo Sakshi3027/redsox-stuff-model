@@ -130,9 +130,9 @@ cd frontend && npm install && npm run dev
   noise-dominated, so no model predicts a single pitch well. Value lives in the
   aggregate rank-ordering — which holds cleanly on held-out data. Published
   models (Stuff+, PitchingBot) share this property.
-- **Planned extensions:** pitch-design recommendations ("+2\" of drop → +X run
-  value"), tunneling/deception analysis, an "undervalued arms" Moneyball layer,
-  and year-over-year pitcher tracking.
+- **Delivered in Phase 2** (see above): pitch-design recommendations, an
+  undervalued-arms Moneyball layer, year-over-year risers & fallers, and
+  arsenal-similarity scouting comps. Still open: tunneling/deception analysis.
 
 ---
 
