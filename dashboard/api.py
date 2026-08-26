@@ -47,7 +47,12 @@ try:
 except Exception:
     risers = pd.DataFrame(columns=["pitcher", "player_name",
                                    "overall_stuff_2023", "overall_stuff_2024", "delta"])
-        
+try:
+    similarity = pd.read_parquet(DATA / "similarity.parquet")
+except Exception:
+    similarity = pd.DataFrame(columns=["pitcher", "similar_pitcher",
+                                       "similar_name", "similarity"])
+            
 # nice display names for pitch codes
 PITCH_NAMES = {
     "FF": "Four-Seam", "SI": "Sinker", "FC": "Cutter", "SL": "Slider",
@@ -140,4 +145,16 @@ def get_trends(limit: int = 12):
     return {
         "risers": df.head(limit)[cols].to_dict(orient="records"),
         "fallers": df.tail(limit).iloc[::-1][cols].to_dict(orient="records"),
+    }
+
+@app.get("/api/similar/{pitcher_id}")
+def get_similar(pitcher_id: int):
+    s = similarity[similarity["pitcher"] == pitcher_id].copy()
+    if s.empty:
+        return {"pitcher": pitcher_id, "comps": []}
+    s = s.sort_values("similarity", ascending=False)
+    return {
+        "pitcher": pitcher_id,
+        "comps": s[["similar_pitcher", "similar_name", "similarity"]]
+        .to_dict(orient="records"),
     }
